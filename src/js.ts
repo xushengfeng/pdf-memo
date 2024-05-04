@@ -468,7 +468,7 @@ async function showBooks() {
 
         const pel = el("div");
         const p = await loadingTask.getPage(1);
-        const ifr = await showPdf(p);
+        const ifr = await showPdf(p, 100);
         pel.append(ifr);
         bookIEl = bookEl(book.name, ifr);
 
@@ -599,7 +599,7 @@ async function showNormalBook(book: book, chapter: string) {
     const pel = el("div");
     for (let page of s.pages) {
         const p = await loadingTask.getPage(page);
-        const ifr = await showPdf(p);
+        const ifr = await showPdf(p, 600);
         pel.append(ifr);
     }
     if (!s.cardId || !cardsStore.getItem(s.cardId)) {
@@ -628,23 +628,18 @@ async function showNormalBook(book: book, chapter: string) {
     return cel;
 }
 
-async function showPdf(page: PDFPageProxy) {
-    let scale = 1;
-    let viewport = page.getViewport({ scale: scale });
+async function showPdf(page: PDFPageProxy, width: number) {
+    const _width = width * 2;
+    let viewport = page.getViewport({ scale: 1 });
+    let scale = _width / viewport.width;
 
-    let canvas = el("canvas");
+    let canvas = el("canvas", { style: { width: width + "px" } });
     let context = canvas.getContext("2d");
 
-    let cw = viewport.width * scale,
-        ch = viewport.height * scale;
+    canvas.width = Math.round(_width);
+    canvas.height = Math.round(_width * (viewport.height / viewport.width));
 
-    let scalex = viewport.width;
-    let scaley = viewport.height;
-
-    canvas.width = Math.round(cw);
-    canvas.height = Math.round(ch);
-
-    let transform = null;
+    let transform = [scale, 0, 0, scale, 0, 0];
 
     let renderContext = {
         canvasContext: context,
