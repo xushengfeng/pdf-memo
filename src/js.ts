@@ -1144,6 +1144,29 @@ settingEl.append(
     )
 );
 
+type FileJson = {
+    name: string;
+    size: number;
+    type: string;
+    lastModified: number;
+    base64: string;
+};
+
+async function file2json(file: File) {
+    let x = {};
+    for (let i in file) {
+        if (typeof i != "function") x[i] = file[i];
+    }
+    x["base64"] = fromUint8Array(new Uint8Array(await file.arrayBuffer()));
+    return x as FileJson;
+}
+
+function json2file(x: FileJson) {
+    const buffer = toUint8Array(x.base64);
+    delete x.base64;
+    return new File([buffer], x.name, { ...x });
+}
+
 const rmbwJsonName = "rmbw.json";
 const rmbwZipName = "rmbw.zip";
 
@@ -1152,6 +1175,7 @@ type allData = {
     cards: Object;
     card2chapter: Object;
     actions: Object;
+    file?: Object;
 };
 
 let allData2Store: { [key in keyof allData]: LocalForage } = {
@@ -1159,18 +1183,25 @@ let allData2Store: { [key in keyof allData]: LocalForage } = {
     cards: cardsStore,
     card2chapter: card2chapter,
     actions: cardActionsStore,
+    file: fileStore,
 };
-async function getAllData() {
+async function getAllData(file?: boolean) {
     let l: allData = {
         bookshelf: {},
         cards: {},
         card2chapter: {},
         actions: {},
     };
-    for (const storeName in allData2Store) {
+    if (file) l["file"] = {};
+    for (const storeName in l) {
         await allData2Store[storeName].iterate((v, k) => {
             l[storeName][k] = v;
         });
+    }
+    if (file) {
+        for (let i in l.file) {
+            l.file[i] = await file2json(l.file[i]);
+        }
     }
     return JSON.stringify(l, null, 2);
 }
@@ -1193,7 +1224,7 @@ async function setAllData(data: string) {
         }
     }
 
-    for (let key of ["cards", "spell"]) {
+    for (let key of ["cards"]) {
         for (let i in json[key]) {
             let r = json[key][i] as Card;
             r.due = new Date(r.due);
@@ -1224,7 +1255,13 @@ async function setAllData(data: string) {
     }
     for (const storeName in allData2Store) {
         await allData2Store[storeName].clear();
-        await allData2Store[storeName].setItems(json[storeName]);
+        let data = json[storeName];
+        if (storeName === "file") {
+            for (let i in data) {
+                data[i] = json2file(data[i]);
+            }
+        }
+        await allData2Store[storeName].setItems(data);
     }
     requestIdleCallback(() => {
         location.reload();
@@ -1328,7 +1365,7 @@ let uploadDataEl = el("input", "上传数据", {
     },
 });
 
-import { encode } from "js-base64";
+import { encode, toUint8Array, fromUint8Array } from "js-base64";
 import { PDFPageProxy } from "pdfjs-dist";
 
 function download(text: string, name: string) {
@@ -1344,7 +1381,7 @@ let asyncEl = el("div", [
     el("div", [
         el("button", "导出数据", {
             onclick: async () => {
-                let data = await getAllData();
+                let data = await getAllData(true);
                 download(data, rmbwJsonName);
             },
         }),
