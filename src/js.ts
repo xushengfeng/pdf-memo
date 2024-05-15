@@ -599,7 +599,7 @@ async function showNormalBook(book: book, chapter: string) {
     const pel = el("div");
     for (let page of s.pages) {
         const p = await loadingTask.getPage(page);
-        const ifr = await showPdf(p, 600);
+        const ifr = await showPdf(p, 600, 1.2);
         pel.append(ifr);
     }
     if (!s.cardId || !cardsStore.getItem(s.cardId)) {
@@ -628,8 +628,8 @@ async function showNormalBook(book: book, chapter: string) {
     return cel;
 }
 
-async function showPdf(page: PDFPageProxy, width: number) {
-    const _width = width * 2;
+async function showPdf(page: PDFPageProxy, width: number, zoom?: number) {
+    const _width = width * (zoom || 1);
     let viewport = page.getViewport({ scale: 1 });
     let scale = _width / viewport.width;
 
