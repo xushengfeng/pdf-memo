@@ -317,10 +317,11 @@ type book = {
     lastPosi: number;
     pdf: string;
 };
+type pages = { start: number; end: number };
 type chapter = {
     id: string;
     title: string;
-    pages: number[];
+    pages: pages;
     lastPage: number;
     cardId: string;
 };
@@ -345,6 +346,15 @@ async function getTitle(bookId: string, sectionN: number, x?: string) {
 async function getTitleEl(bookId: string, sectionN: number, x?: string) {
     const title = await getTitle(bookId, sectionN, x);
     return el("span", { class: "source_title" }, title);
+}
+
+function getPages(p: pages) {
+    const Pages: number[] = [];
+    if (p.start === 0 || p.end === 0) return Pages;
+    for (let i = p.start; i <= p.end; i++) {
+        Pages.push(i);
+    }
+    return Pages;
 }
 
 async function newBook() {
@@ -373,7 +383,7 @@ async function newBook() {
 }
 
 function newSection() {
-    let s: chapter = { title: "新章节", id: uuid(), lastPage: 0, cardId: "", pages: [] };
+    let s: chapter = { title: "新章节", id: uuid(), lastPage: 0, cardId: "", pages: { start: 0, end: 0 } };
     return s;
 }
 
@@ -579,14 +589,19 @@ type chapterSrc = {
     id: string;
 };
 
-async function showNormalBook(book: book, chapter: string) {
-    const s = book.chapters.find((i) => i.id === chapter);
-    const cel = el("div");
-
+async function getPdfTask(book: book) {
     const fileId = book.pdf;
     const file = (await fileStore.getItem(fileId)) as Blob;
 
     const loadingTask = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+    return loadingTask;
+}
+
+async function showNormalBook(book: book, chapter: string) {
+    const s = book.chapters.find((i) => i.id === chapter);
+    const cel = el("div");
+
+    const loadingTask = await getPdfTask(book);
 
     cel.append(
         el("h1", s.title, {
@@ -597,7 +612,7 @@ async function showNormalBook(book: book, chapter: string) {
     );
 
     const pel = el("div");
-    for (let page of s.pages) {
+    for (let page of getPages(s.pages)) {
         const p = await loadingTask.getPage(page);
         const ifr = await showPdf(p, 600, 1.2);
         pel.append(ifr);
@@ -651,15 +666,18 @@ async function showPdf(page: PDFPageProxy, width: number, zoom?: number) {
 }
 
 let isEdit = false;
-let editPages: number[] = [];
+let editPages: pages = { start: 0, end: 0 };
+const readerC = "reader";
 
 async function changeEdit(b: boolean) {
     isEdit = b;
     if (isEdit) {
         changeEditEl.innerHTML = icon(ok_svg);
+        bookContentContainerEl.classList.remove(readerC);
         return setEdit();
     } else {
         let newC = el("div");
+        bookContentContainerEl.classList.add(readerC);
         bookContentContainerEl.innerHTML = "";
         bookContentContainerEl.append(newC);
         bookContentEl = newC;
@@ -685,30 +703,49 @@ async function setEdit() {
     let book = await getBooksById(nowBook.book);
     let id = nowBook.chapterI;
     let chapter = getSection(book, id);
+    const lastChapter = getSection(book, id - 1);
+    editPages.start = chapter.pages.start || lastChapter?.pages?.start || 1;
+    editPages.end = Math.max(chapter.pages.end, editPages.start);
     bookContentContainerEl.innerHTML = "";
     const startEl = el("input", {
         type: "number",
-        value: chapter.pages[0],
+        value: editPages.start,
         oninput: () => {
             setPage();
         },
     });
     const endEl = el("input", {
         type: "number",
-        value: chapter.pages.at(-1),
+        value: editPages.end,
         oninput: () => {
             setPage();
         },
     });
     function setPage() {
-        editPages = [];
         const start = Number(startEl.value);
         const end = Number(endEl.value);
-        for (let i = start; i <= end; i++) {
-            editPages.push(i);
-        }
+        editPages = { start, end };
+        pre(editPages);
     }
     bookContentContainerEl.append(startEl, endEl);
+    const preview = el("div");
+    const loadingTask = await getPdfTask(book);
+    async function pre(p: pages) {
+        const pages = getPages(p);
+        for (let i of pages) {
+            if (!preview.querySelector(`[data-i="${i}"]`)) {
+                const p = await loadingTask.getPage(i);
+                preview.append(el("div", { "data-i": i, style: { order: i } }, await showPdf(p, 100)));
+            }
+        }
+        for (let i of preview.children) {
+            if (!pages.includes(Number(i.getAttribute("data-i")))) {
+                i.remove();
+            }
+        }
+    }
+    pre(chapter.pages);
+    bookContentContainerEl.append(preview);
 
     return text;
 }

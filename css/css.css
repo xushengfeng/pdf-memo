@@ -360,59 +360,9 @@ body {
     overflow-y: scroll;
     overflow-x: hidden;
     outline: none;
-    & > :first-child {
-        display: block;
-        margin: 0 auto;
-        font-size: var(--font-size);
-        max-width: var(--content-width);
-        transition: var(--transition);
-        font-family: var(--font-family);
-        position: relative;
-
-        border: none;
-        width: 100%;
-
-        & > p {
-            line-height: var(--line-height);
-            transition: var(--transition);
-        }
-
-        &:not(textarea) {
-            user-select: none;
-            & p > span > span {
-                cursor: pointer;
-                &:hover {
-                    text-decoration: underline wavy #999;
-                }
-            }
-            & p > span[data-trans] {
-                display: inline;
-                &::after {
-                    content: attr(data-trans);
-                    display: block;
-                }
-            }
-        }
-
-        & > :has(:is([data-play], [data-play-l])) {
-            position: relative;
-            &:hover {
-                > :is([data-play], [data-play-l]) {
-                    opacity: 1;
-                }
-            }
-        }
-        & > * > :is([data-play], [data-play-l]) {
-            position: absolute;
-            opacity: 0.2;
-            transition: var(--transition);
-        }
-        & > * > [data-play] {
-            left: calc(-1 * var(--size0));
-        }
-        & > * > [data-play-l] {
-            left: calc(-1 * var(--size0));
-            top: var(--size0);
+    &:not(.reader) {
+        & > :last-child {
+            display: flex;
         }
     }
 }
