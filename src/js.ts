@@ -316,6 +316,7 @@ type book = {
     chapters: chapter[];
     lastPosi: number;
     pdf: string;
+    singleCover?: boolean;
 };
 type pages = { start: number; end: number };
 type chapter = {
@@ -612,11 +613,8 @@ async function showNormalBook(book: book, chapter: string) {
     );
 
     const pel = el("div");
-    for (let page of getPages(s.pages)) {
-        const p = await loadingTask.getPage(page);
-        const ifr = await showPdf(p, 600, 1.2);
-        pel.append(ifr);
-    }
+    const v = await pdfV(loadingTask, s.pages);
+    pel.append(v);
     if (!s.cardId || !cardsStore.getItem(s.cardId)) {
         const add = el("button", iconEl(add_svg), {
             onclick: async () => {
@@ -663,6 +661,48 @@ async function showPdf(page: PDFPageProxy, width: number, zoom?: number) {
     };
     let task = page.render(renderContext);
     return canvas;
+}
+
+async function pdfV(page: PDFDocumentProxy, pages: pages, p?: number, singleCover?: boolean) {
+    if (!p) p = pages.start;
+    let p1 = 0,
+        p2 = 0;
+    const vEl = el("div", { class: "viewer" });
+    const p1El = el("div");
+    const p2El = el("div");
+    vEl.append(p1El, p2El);
+    async function showP() {
+        let isSecendPage = p % 2 === (singleCover ? 1 : 0);
+        if (!isSecendPage) {
+            p1 = p;
+            p2 = p + 1;
+        } else {
+            p1 = p - 1;
+            p2 = p;
+        }
+        if (p1 < pages.start) p1 = 0;
+        if (p2 > pages.end) p2 = 0;
+        p1El.innerHTML = p2El.innerHTML = "";
+        const w = window.innerWidth / 2;
+        p1El.style.width = w + "px";
+        p2El.style.width = w + "px";
+        if (p1) p1El.append(await showPdf(await page.getPage(p1), w, 1.5));
+        if (p2) p2El.append(await showPdf(await page.getPage(p2), w, 1.5));
+    }
+    showP();
+    p1El.onclick = (e) => {
+        if (e.offsetX < p1El.offsetWidth / 3) {
+            p = Math.max(pages.start, p - 2);
+            showP();
+        }
+    };
+    p2El.onclick = (e) => {
+        if (e.offsetX > (p2El.offsetWidth / 3) * 2) {
+            p = Math.min(pages.end, p + 2);
+            showP();
+        }
+    };
+    return vEl;
 }
 
 let isEdit = false;
@@ -1403,7 +1443,7 @@ let uploadDataEl = el("input", "上传数据", {
 });
 
 import { encode, toUint8Array, fromUint8Array } from "js-base64";
-import { PDFPageProxy } from "pdfjs-dist";
+import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
 function download(text: string, name: string) {
     let blob = new Blob([text], { type: "text/plain;charset=utf-8" });

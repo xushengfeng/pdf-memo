@@ -347,16 +347,9 @@ body {
 }
 
 #book_content_container {
-    --content-width: 60em;
-    --line-height: 1.2em;
-    --paper-bg: url("../assets/Texture.png") repeat;
-    background: var(--paper-bg);
-    background-size: 400px 400px;
-    background-attachment: local;
     position: relative;
     height: calc(100dvh - var(--size0));
     box-sizing: border-box;
-    padding: 1rem 24px calc(100dvh - var(--size0));
     overflow-y: scroll;
     overflow-x: hidden;
     outline: none;
@@ -367,23 +360,8 @@ body {
     }
 }
 
-#pTTSp {
-    position: fixed;
-    bottom: var(--size0);
-    margin: auto 0;
-    background: var(--bar-bg);
-    backdrop-filter: var(--blur);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    & > audio {
-        height: var(--size0);
-        display: block;
-    }
-}
-
-.pTTS_show {
-    display: flex !important;
+.viewer {
+    display: flex;
 }
 
 #books {
