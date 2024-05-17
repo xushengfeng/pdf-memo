@@ -642,7 +642,7 @@ async function showNormalBook(book: book, chapter: string) {
 }
 
 async function showPdf(page: PDFPageProxy, width: number, zoom?: number) {
-    const _width = width * (zoom || 1);
+    const _width = width * (zoom || window.devicePixelRatio);
     let viewport = page.getViewport({ scale: 1 });
     let scale = _width / viewport.width;
 
@@ -686,8 +686,8 @@ async function pdfV(page: PDFDocumentProxy, pages: pages, p?: number, singleCove
         const w = window.innerWidth / 2;
         p1El.style.width = w + "px";
         p2El.style.width = w + "px";
-        if (p1) p1El.append(await showPdf(await page.getPage(p1), w, 1.5));
-        if (p2) p2El.append(await showPdf(await page.getPage(p2), w, 1.5));
+        if (p1) p1El.append(await showPdf(await page.getPage(p1), w));
+        if (p2) p2El.append(await showPdf(await page.getPage(p2), w));
     }
     showP();
     p1El.onclick = (e) => {

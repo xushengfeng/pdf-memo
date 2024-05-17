@@ -353,6 +353,9 @@ body {
     overflow-y: scroll;
     overflow-x: hidden;
     outline: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
     &:not(.reader) {
         & > :last-child {
             display: flex;
