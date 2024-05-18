@@ -534,12 +534,12 @@ async function showBooks() {
 function showBook(book: book) {
     nowBook.book = book.id;
     nowBook.chapterI = book.lastPosi;
-    showBookSections(book);
+    showBookSections(book.id);
     showBookContent(book, book.chapters[book.lastPosi].id);
     setBookS();
 }
-async function showBookSections(book: book) {
-    const sections = structuredClone(book.chapters);
+async function showBookSections(bookId: string) {
+    const sections = structuredClone((await getBooksById(bookId)).chapters);
     bookSectionsEl.innerHTML = "";
     vlist(bookSectionsEl, sections, { iHeight: 24, paddingTop: 16, paddingLeft: 16 }, async (i) => {
         let sEl = el("div");
@@ -547,6 +547,7 @@ async function showBookSections(book: book) {
         sEl.innerText = sEl.title = s.title || `章节${Number(i) + 1}`;
         if (nowBook.chapterI === i) sEl.classList.add(SELECTEDITEM);
         sEl.onclick = async () => {
+            const book = await getBooksById(bookId);
             sEl.classList.remove(TODOMARK);
 
             bookSectionsEl.querySelector(`.${SELECTEDITEM}`).classList.remove(SELECTEDITEM);
@@ -556,7 +557,7 @@ async function showBookSections(book: book) {
             showBookContent(book, sections[i].id);
             setBookS();
             book.lastPosi = Number(i);
-            bookshelfStore.setItem(nowBook.book, book);
+            bookshelfStore.setItem(bookId, book);
         };
         sEl.oncontextmenu = async (e) => {
             e.preventDefault();
@@ -580,7 +581,7 @@ async function showBookSections(book: book) {
 async function showBookContent(book: book, chapter: string) {
     bookContentContainerEl.innerHTML = "";
 
-    const x = await showNormalBook(book, chapter);
+    const x = await showNormalBook(book.id, chapter);
     bookContentEl = x;
     bookContentContainerEl.append(x);
 }
@@ -598,7 +599,8 @@ async function getPdfTask(book: book) {
     return loadingTask;
 }
 
-async function showNormalBook(book: book, chapter: string) {
+async function showNormalBook(bookId: string, chapter: string) {
+    const book = await getBooksById(bookId);
     const s = book.chapters.find((i) => i.id === chapter);
     const cel = el("div");
 
@@ -1026,14 +1028,13 @@ async function showReview(x: { id: string; card: Card }) {
 async function showWordReview(x: { id: string; card: Card }) {
     let wordid = (await card2chapter.getItem(x.id)) as chapterSrc;
     let div = el("div");
-    const b = await getBooksById(wordid.book);
 
     let buttons = getReviewCardButtons(x.id, x.card, async (rating) => {
         let next = await nextDue();
         showReview(next);
     });
 
-    const vEl = await showNormalBook(b, wordid.id);
+    const vEl = await showNormalBook(wordid.book, wordid.id);
     div.append(vEl, buttons.buttons);
     reviewViewEl.innerHTML = "";
     reviewViewEl.append(div);
