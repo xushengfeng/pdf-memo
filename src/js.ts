@@ -746,7 +746,7 @@ async function setEdit() {
     let id = nowBook.chapterI;
     let chapter = getSection(book, id);
     const lastChapter = getSection(book, id - 1);
-    editPages.start = chapter.pages.start || lastChapter?.pages?.start || 1;
+    editPages.start = chapter.pages.start || lastChapter?.pages?.end + 1 || 1;
     editPages.end = Math.max(chapter.pages.end, editPages.start);
     bookContentContainerEl.innerHTML = "";
     const startEl = el("input", {
