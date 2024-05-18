@@ -929,12 +929,8 @@ var cardsStore = localforage.createInstance({ name: "review", storeName: "cards"
 var card2chapter = localforage.createInstance({ name: "review", storeName: "card2chapter" });
 var cardActionsStore = localforage.createInstance({ name: "review", storeName: "actions" });
 function setCardAction(cardId: string, time: Date, rating: Rating, state: State, duration: number) {
-    cardActionsStore.setItem(String(time.getTime()), {
-        cardId,
-        rating,
-        state,
-        duration,
-    });
+    let l = rating ? [cardId, rating, state, duration] : [cardId];
+    cardActionsStore.setItem(String(time.getTime()), l);
 }
 function newCardAction(id: string) {
     setCardAction(id, new Date(), null, null, null);
@@ -1275,6 +1271,13 @@ async function getAllData(file?: boolean) {
         await allData2Store[storeName].iterate((v, k) => {
             l[storeName][k] = v;
         });
+    }
+    for (let i in l.cards) {
+        let r = l.cards[i] as Card;
+        let nr = structuredClone(r) as any;
+        nr.due = r.due.getTime();
+        nr.last_review = r.last_review.getTime();
+        l.cards[i] = nr;
     }
     if (file) {
         for (let i in l.file) {
